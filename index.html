@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ライブカレンダー</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--ink:#1f1633;--mut:#7b7391;--pk:#d6458f;--pk2:#fbeef5;--vi:#6d3fd1;--vi2:#f4f0ff;--bg:#faf8fc;--line:#ece6f5;--gr:#f6f5f8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{padding-top:env(safe-area-inset-top,0)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:15px;line-height:1.5;padding-bottom:calc(96px + env(safe-area-inset-bottom,0))}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+a{color:var(--vi);word-break:break-all}
+:focus-visible{outline:3px solid var(--vi);outline-offset:2px}
+.hero{height:150px;background:linear-gradient(135deg,#2a1559 0%,#6d3fd1 55%,#d6458f 120%);color:#fff;display:flex;align-items:flex-end;justify-content:space-between;padding:16px}
+.hero h1{margin:0;font-size:26px;font-weight:900;letter-spacing:.02em;line-height:1.15}
+.me{display:flex;align-items:center;gap:8px;font-size:12px}
+.me button{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:99px;font-size:12px}
+.hero{background-size:cover;background-position:center}.hero h1{white-space:pre-line}.chip{display:flex;align-items:center;gap:6px}.chip .av{margin:0;width:22px;height:22px;font-size:11px}
+.tabs{position:sticky;top:env(safe-area-inset-top,0);z-index:5;display:flex;background:#fff;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:14px 0;font-weight:700;color:var(--mut);border-bottom:3px solid transparent}
+.tabs button.on{color:var(--pk);border-color:var(--pk)}
+.wrap{padding:14px 14px 0;max-width:640px;margin:0 auto}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:4px 0 12px;gap:8px}
+.bar select{width:auto;padding:6px 10px}
+.card{background:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 14px rgba(70,40,120,.07)}
+.row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.grow{flex:1;min-width:0}
+h3{margin:0;font-size:19px;font-weight:800;line-height:1.3}
+.mut{color:var(--mut);margin:2px 0 0;font-size:14px}
+.th{width:64px;height:64px;border-radius:14px;object-fit:cover;border:1px solid var(--line);flex:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.b{border-radius:12px;padding:8px 10px;background:var(--gr)}
+.b small{display:block;font-size:11px;color:var(--mut)}
+.b b{font-size:14px}
+.b.pk{background:var(--pk2)}.b.pk b{color:#8c1d58}
+.b.vi{background:var(--vi2)}.b.vi b{color:#47208f}
+.wide{grid-column:1/-1}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.hint{color:var(--pk);font-size:13px;font-weight:700}
+.go{background:var(--pk);color:#fff;font-weight:800;padding:9px 16px;border-radius:99px}
+.go.on{background:var(--vi)}
+.avs{display:flex;align-items:center;margin-top:10px}
+.av{width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--vi);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;margin-right:-8px;flex:none}
+.avs span.n{margin-left:16px;font-size:12px;color:var(--mut)}
+.fab{position:fixed;right:18px;bottom:calc(22px + env(safe-area-inset-bottom,0));width:58px;height:58px;border-radius:50%;background:var(--pk);color:#fff;font-size:32px;box-shadow:0 6px 18px rgba(214,69,143,.45);z-index:6}
+.num{display:flex;justify-content:space-between;align-items:center;gap:12px;touch-action:pan-y}
+.nb{min-width:92px;text-align:center;border:1.5px solid #dccdf8;background:var(--vi2);border-radius:14px;padding:8px 10px}
+.nb small{display:block;font-size:11px;color:var(--vi)}
+.nb b{font-size:22px;color:#3b1a82}
+.empty{text-align:center;color:var(--mut);padding:36px 12px}
+.mask{position:fixed;inset:0;background:rgba(20,10,40,.55);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.mask.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0))}
+.sheet img.big{width:100%;border-radius:14px;margin-bottom:12px}
+.sec{border-radius:14px;padding:12px 14px;margin:12px 0}
+.sec h4{margin:0 0 6px;font-size:14px}
+.sec p{margin:3px 0}
+.btn{display:block;width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--line);font-weight:700;margin-top:10px;text-align:center}
+.btn.p{background:var(--pk);color:#fff;border-color:var(--pk)}
+.btn.d{color:#c0392b}
+label{display:block;font-size:12px;color:var(--mut);margin:12px 0 4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.auth{max-width:420px;margin:0 auto;padding:28px 18px}
+.auth h2{font-size:24px;margin:0 0 4px}
+.who{display:flex;align-items:center;gap:8px;margin:6px 0}
+.who .av{margin:0;border:0}
+.hid{opacity:.5}
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;z-index:30;display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="mask" id="mask"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+<script>
+const sb = supabase.createClient('https://njzdxjkclaonvtjirrgp.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qemR4amtjbGFvbnZ0amlycmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MzY2NjQsImV4cCI6MjEwODAxMjY2NH0.KkV71ATa8YGN33XJgLtmzJTlsHQkmhoqEAg3bO-wX9U');
+let site={title:'ライブ\nカレンダー',header_url:''},me=null,prof=null,lives=[],ints=[],profs={},nums={},tab='s',sort='d',showHid=false,authMode='in',tx=0;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safe=u=>/^https?:\/\//.test(u||'')?esc(u):'';
+const link=s=>esc(s).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g,'<br>');
+const p2=n=>String(n).padStart(2,'0');
+const fd=d=>{if(!d)return'未定';const x=new Date(d+'T00:00:00');return x.getFullYear()+'年'+(x.getMonth()+1)+'月'+x.getDate()+'日('+'日月火水木金土'[x.getDay()]+')'};
+const fdt=t=>{if(!t)return'—';const x=new Date(t);return (x.getMonth()+1)+'/'+x.getDate()+' '+p2(x.getHours())+':'+p2(x.getMinutes())};
+const loc=t=>{if(!t)return'';const x=new Date(t);return x.getFullYear()+'-'+p2(x.getMonth()+1)+'-'+p2(x.getDate())+'T'+p2(x.getHours())+':'+p2(x.getMinutes())};
+const av=p=>p&&safe(p.icon_url)?'<img class="av" src="'+safe(p.icon_url)+'" alt="">':'<span class="av">'+esc(((p&&p.username)||'?').slice(0,1))+'</span>';
+const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
+const closeM=()=>$('#mask').classList.remove('on');
+const openM=h=>{$('#sheet').innerHTML=h;$('#mask').classList.add('on')};
+$('#mask').addEventListener('click',e=>{if(e.target.id==='mask')closeM()});
+
+function authView(){
+ const up=authMode==='up';
+ $('#app').innerHTML='<div class="auth"><h2>ライブカレンダー</h2>'
+ +(up?'<label>ユーザー名（みんなに表示されます）</label><input id="un" maxlength="20"><label>アイコン画像のURL（任意）</label><input id="ic" placeholder="https://...">':'')
+ +'<label>メールアドレス</label><input id="em" type="email" autocomplete="email"><label>パスワード（6文字以上）</label><input id="pw" type="password" autocomplete="'+(up?'new-password':'current-password')+'">'
+ +'<button class="btn p" onclick="doAuth()">'+(up?'登録する':'ログイン')+'</button>'
+ +'<button class="btn" onclick="authMode=\''+(up?'in':'up')+'\';authView()">'+(up?'ログイン画面へ':'新しく登録する')+'</button></div>';
+}
+async function doAuth(){
+ const email=$('#em').value.trim(),password=$('#pw').value;
+ if(!email||!password)return toast('メールとパスワードを入力してください');
+ let r;
+ if(authMode==='up'){
+  const username=$('#un').value.trim()||'名無し',icon_url=$('#ic').value.trim()||null;
+  r=await sb.auth.signUp({email,password,options:{data:{username,icon_url}}});
+  if(!r.error&&!r.data.session)return toast('確認メールを送信しました。メール内のリンクを開いてください');
+ }else r=await sb.auth.signInWithPassword({email,password});
+ if(r.error)toast('失敗: '+r.error.message);
+}
+async function load(){
+ const q=await Promise.all([sb.from('lives').select('*'),sb.from('interests').select('*'),sb.from('profiles').select('*'),sb.from('my_numbers').select('*'),sb.from('site_settings').select('*').maybeSingle()]);
+ lives=q[0].data||[];ints=q[1].data||[];profs={};(q[2].data||[]).forEach(p=>profs[p.id]=p);
+ nums={};(q[3].data||[]).forEach(n=>nums[n.live_id]=n);prof=profs[me.id]||{};site=Object.assign({title:'ライブ\nカレンダー',header_url:''},(q[4]&&q[4].data)||{});if(!site.title)site.title='ライブ\nカレンダー';render();
+}
+function sorted(){
+ const l=[...lives],now=Date.now();
+ if(sort==='d')l.sort((a,b)=>(a.live_date||'9999').localeCompare(b.live_date||'9999'));
+ else{const f=x=>{if(!x.apply_end)return 9e15;const t=new Date(x.apply_end).getTime();return t<now?1e15+t:t};l.sort((a,b)=>f(a)-f(b))}
+ return l;
+}
+function render(){
+ const host=prof&&prof.is_host;
+ const hb=safe(site.header_url)?' style="background-image:linear-gradient(rgba(20,10,40,.1),rgba(20,10,40,.55)),url(\''+safe(site.header_url)+'\')"':'';
+ let h='<div class="hero"'+hb+'><h1>'+esc(site.title)+'</h1><div class="me"><button class="chip" onclick="myPage()">'+av(prof)+esc(prof&&prof.username)+'</button>'+(host?'<button onclick="siteM()">サイト設定</button>':'')+'</div></div>'
+ +'<div class="tabs"><button class="'+(tab==='s'?'on':'')+'" onclick="tab=\'s\';render()">スケジュール</button><button class="'+(tab==='n'?'on':'')+'" onclick="tab=\'n\';render()">整理番号</button></div><div class="wrap">';
+ h+=tab==='s'?schedView():numView();
+ h+='</div>'+(host&&tab==='s'?'<button class="fab" aria-label="ライブを追加" onclick="formM()">+</button>':'');
+ $('#app').innerHTML=h;
+}
+function schedView(){
+ let h='<div class="bar"><b>'+lives.length+'件</b><select onchange="sort=this.value;render()"><option value="d"'+(sort==='d'?' selected':'')+'>日付順</option><option value="a"'+(sort==='a'?' selected':'')+'>申込順（締切が近い順）</option></select></div>';
+ if(!lives.length)return h+'<div class="empty">まだライブがありません。<br>ホストが追加すると、ここに表示されます。</div>';
+ return h+sorted().map(card).join('');
+}
+function card(l){
+ const who=ints.filter(i=>i.live_id===l.id),on=who.some(i=>i.user_id===me.id);
+ return '<div class="card" onclick="detail(\''+l.id+'\')"><div class="row"><div class="grow"><h3>'+esc(l.title)+'</h3><p class="mut">📍 '+esc(l.venue||'会場未定')+'</p></div>'+(safe(l.image_url)?'<img class="th" src="'+safe(l.image_url)+'" alt="">':'')+'</div>'
+ +'<div class="grid"><div class="b pk"><small>ライブ当日</small><b>'+fd(l.live_date)+'</b></div><div class="b vi"><small>チケット種別</small><b>'+esc(l.ticket_type||'—')+'</b></div>'
+ +'<div class="b wide"><small>申込受付期間</small><b>'+fdt(l.apply_start)+' 〜 '+fdt(l.apply_end)+'</b></div>'
+ +'<div class="b"><small>当落発表</small><b>'+fd(l.result_date)+'</b></div><div class="b"><small>発券開始</small><b>'+fd(l.issue_date)+'</b></div></div>'
+ +(who.length?'<div class="avs">'+who.slice(0,6).map(i=>av(profs[i.user_id])).join('')+'<span class="n">'+who.length+'人が行くかも</span></div>':'')
+ +'<div class="foot" style="margin-top:10px"><span class="hint">ⓘ タップで詳細</span><button class="go'+(on?' on':'')+'" onclick="toggleGo(event,\''+l.id+'\')">'+(on?'行くかも！ ✓':'行くかも！')+'</button></div></div>';
+}
+async function toggleGo(e,id){
+ e.stopPropagation();
+ const on=ints.some(i=>i.live_id===id&&i.user_id===me.id);
+ const r=on?await sb.from('interests').delete().match({live_id:id,user_id:me.id}):await sb.from('interests').insert({live_id:id,user_id:me.id});
+ if(r.error)return toast('失敗: '+r.error.message);
+ await load();if($('#mask').classList.contains('on'))detail(id);
+}
+function detail(id){
+ const l=lives.find(x=>x.id===id);if(!l)return;
+ const who=ints.filter(i=>i.live_id===id),on=who.some(i=>i.user_id===me.id),host=prof&&prof.is_host;
+ openM((safe(l.image_url)?'<img class="big" src="'+safe(l.image_url)+'" alt="">':'')+'<h3 style="font-size:22px">'+esc(l.title)+'</h3>'
+ +(l.venue?'<p class="mut">📍 '+(safe(l.map_url)?'<a href="'+safe(l.map_url)+'" target="_blank" rel="noopener">'+esc(l.venue)+'</a>':esc(l.venue))+'</p>':'')
+ +'<div class="sec" style="background:var(--pk2)"><h4>ライブ情報</h4><p>公演日: <b>'+fd(l.live_date)+'</b></p><p>OPEN '+esc(l.open_time||'—')+' / START '+esc(l.start_time||'—')+'</p><p>形式: '+esc(l.format||'—')+'</p></div>'
+ +'<div class="sec" style="background:var(--vi2)"><h4>チケット情報</h4><p>種別: '+esc(l.ticket_type||'—')+'</p><p>申込受付: '+fdt(l.apply_start)+' 〜 '+fdt(l.apply_end)+'</p><p>当落発表: '+fd(l.result_date)+'</p><p>発券開始: '+fd(l.issue_date)+'</p></div>'
+ +(l.memo?'<div class="sec" style="background:var(--gr)"><h4>メモ</h4><p>'+link(l.memo)+'</p></div>':'')
+ +(l.setlist?'<div class="sec" style="background:var(--gr)"><h4>セトリ</h4><p>'+link(l.setlist)+'</p></div>':'')
+ +'<div class="sec" style="background:var(--gr)"><h4>行くかも！リスト（'+who.length+'人）</h4>'+(who.length?who.map(i=>'<div class="who">'+av(profs[i.user_id])+esc((profs[i.user_id]||{}).username)+'</div>').join(''):'<p class="mut">まだ誰もいません</p>')+'</div>'
+ +'<button class="btn p" onclick="toggleGo(event,\''+id+'\')">'+(on?'行くかも！を取り消す':'行くかも！')+'</button>'
+ +(host?'<button class="btn" onclick="formM(\''+id+'\')">編集</button><button class="btn d" onclick="delLive(\''+id+'\')">削除</button>':'')
+ +'<button class="btn" onclick="closeM()">閉じる</button>');
+}
+function formM(id){
+ const l=lives.find(x=>x.id===id)||{};const v=k=>esc(l[k]||'');
+ const f=(k,t,lab,ph)=>'<label>'+lab+'</label><input id="f_'+k+'" type="'+t+'" value="'+(t==='datetime-local'?esc(loc(l[k])):v(k))+'"'+(ph?' placeholder="'+ph+'"':'')+'>';
+ openM('<h3>'+(id?'ライブを編集':'ライブを追加')+'</h3>'+f('title','text','公演名（必須）')+f('venue','text','会場名')+f('map_url','url','マップURL','https://')+f('image_url','url','画像URL（フライヤーなど）','https://')
+ +f('live_date','date','公演日')+'<div class="two"><div>'+f('open_time','time','OPEN')+'</div><div>'+f('start_time','time','START')+'</div></div>'
+ +'<label>ライブ形式</label><select id="f_format"><option value="">選択なし</option>'+['主催','対バン','フェス'].map(o=>'<option'+(l.format===o?' selected':'')+'>'+o+'</option>').join('')+'</select>'
+ +f('ticket_type','text','チケット種別','ローチケ など')+f('apply_start','datetime-local','申込開始')+f('apply_end','datetime-local','申込締切')+f('result_date','date','当落発表日')+f('issue_date','date','発券開始日')
+ +'<label>メモ（URLは自動でリンクになります）</label><textarea id="f_memo">'+v('memo')+'</textarea><label>セトリ</label><textarea id="f_setlist">'+v('setlist')+'</textarea>'
+ +'<button class="btn p" onclick="saveLive('+(id?'\''+id+'\'':'null')+')">保存する</button><button class="btn" onclick="closeM()">キャンセル</button>');
+}
+async function saveLive(id){
+ const g=k=>{const x=$('#f_'+k).value.trim();return x===''?null:x};
+ const o={};['title','venue','map_url','image_url','live_date','open_time','start_time','format','ticket_type','result_date','issue_date','memo','setlist'].forEach(k=>o[k]=g(k));
+ ['apply_start','apply_end'].forEach(k=>{const x=g(k);o[k]=x?new Date(x).toISOString():null});
+ if(!o.title)return toast('公演名は必須です');
+ const r=id?await sb.from('lives').update(o).eq('id',id):await sb.from('lives').insert(o);
+ if(r.error)return toast('失敗: '+r.error.message);
+ closeM();toast('保存しました');load();
+}
+async function delLive(id){
+ if(!confirm('このライブを削除します。よろしいですか？'))return;
+ const r=await sb.from('lives').delete().eq('id',id);
+ if(r.error)return toast('失敗: '+r.error.message);
+ closeM();load();
+}
+function numView(){
+ const l=sorted0().filter(x=>showHid||!(nums[x.id]&&nums[x.id].hidden));
+ let h='<div class="bar"><b>整理番号リスト</b><button class="hint" onclick="showHid=!showHid;render()">'+(showHid?'非表示を隠す':'非表示も表示')+'</button></div><p class="mut" style="margin-top:-6px">番号はあなただけに表示されます。行かないライブは左にスワイプで非表示にできます。</p>';
+ if(!l.length)return h+'<div class="empty">表示できるライブがありません。</div>';
+ return h+l.map(x=>{const n=nums[x.id]||{};const hd=n.hidden;
+  return '<div class="card num'+(hd?' hid':'')+'" ontouchstart="tx=event.touches[0].clientX" ontouchend="swipe(event,\''+x.id+'\','+!hd+')" onclick="numM(\''+x.id+'\')"><div class="grow"><b style="color:var(--pk)">'+fd(x.live_date)+'</b><h3 style="font-size:17px">'+esc(x.title)+'</h3><p class="mut">📍 '+esc(x.venue||'会場未定')+'</p>'+(hd?'<button class="hint" onclick="event.stopPropagation();setHid(\''+x.id+'\',false)">表示に戻す</button>':'')+'</div><div class="nb"><small>整理番号 / 座席</small><b>'+esc(n.number||'—')+'</b></div></div>'}).join('');
+}
+function sorted0(){return [...lives].sort((a,b)=>(a.live_date||'9999').localeCompare(b.live_date||'9999'))}
+function swipe(e,id,hide){if(e.changedTouches[0].clientX-tx<-70&&hide)setHid(id,true)}
+async function setHid(id,v){
+ const r=await sb.from('my_numbers').upsert({live_id:id,user_id:me.id,hidden:v});
+ if(r.error)return toast('失敗: '+r.error.message);
+ load();
+}
+function numM(id){
+ const l=lives.find(x=>x.id===id),n=nums[id]||{};
+ openM('<h3>'+esc(l.title)+'</h3><p class="mut">'+fd(l.live_date)+' / '+esc(l.venue||'')+'</p><label>整理番号 / 座席（あなただけに表示されます）</label><input id="nv" value="'+esc(n.number||'')+'" inputmode="text">'
+ +'<button class="btn p" onclick="saveNum(\''+id+'\')">保存する</button><button class="btn" onclick="closeM()">キャンセル</button>');
+}
+async function saveNum(id){
+ const v=$('#nv').value.trim()||null;
+ const r=await sb.from('my_numbers').upsert({live_id:id,user_id:me.id,number:v});
+ if(r.error)return toast('失敗: '+r.error.message);
+ closeM();load();
+}
+function myPage(){
+ openM('<h3>マイページ</h3><div class="who">'+av(prof)+'<b>'+esc(prof.username)+'</b></div>'
+ +'<label>ユーザー名</label><input id="mu" maxlength="20" value="'+esc(prof.username)+'">'
+ +'<label>プロフィール画像のURL</label><input id="mi" value="'+esc(prof.icon_url||'')+'" placeholder="https://...">'
+ +'<button class="btn p" onclick="saveMe()">プロフィールを保存</button>'
+ +'<label>メールアドレス</label><input id="me_" type="email" value="'+esc(me.email)+'">'
+ +'<button class="btn" onclick="saveEmail()">メールアドレスを変更</button>'
+ +'<label>新しいパスワード（6文字以上）</label><input id="np" type="password" autocomplete="new-password">'
+ +'<button class="btn" onclick="savePw()">パスワードを変更</button>'
+ +'<button class="btn d" onclick="closeM();sb.auth.signOut()">ログアウト</button><button class="btn" onclick="closeM()">閉じる</button>');
+}
+async function saveMe(){
+ const r=await sb.from('profiles').update({username:$('#mu').value.trim()||'名無し',icon_url:$('#mi').value.trim()||null}).eq('id',me.id);
+ if(r.error)return toast('失敗: '+r.error.message);
+ closeM();toast('保存しました');load();
+}
+async function saveEmail(){
+ const e=$('#me_').value.trim();
+ if(!e||e===me.email)return toast('新しいメールアドレスを入力してください');
+ const r=await sb.auth.updateUser({email:e});
+ if(r.error)return toast('失敗: '+r.error.message);
+ toast('変更しました。確認メールが届いた場合はリンクを開いてください');
+}
+async function savePw(){
+ const p=$('#np').value;
+ if(p.length<6)return toast('6文字以上で入力してください');
+ const r=await sb.auth.updateUser({password:p});
+ if(r.error)return toast('失敗: '+r.error.message);
+ $('#np').value='';toast('パスワードを変更しました');
+}
+function siteM(){
+ openM('<h3>サイト設定</h3><label>タイトル（改行できます）</label><textarea id="st" style="min-height:64px">'+esc(site.title)+'</textarea>'
+ +'<label>ヘッダー画像のURL</label><input id="sh" value="'+esc(site.header_url||'')+'" placeholder="https://...">'
+ +'<button class="btn p" onclick="saveSite()">保存する</button><button class="btn" onclick="closeM()">キャンセル</button>');
+}
+async function saveSite(){
+ const r=await sb.from('site_settings').upsert({id:1,title:$('#st').value.trim()||'ライブ\nカレンダー',header_url:$('#sh').value.trim()||null});
+ if(r.error)return toast('失敗: '+r.error.message);
+ closeM();toast('保存しました');load();
+}
+sb.auth.onAuthStateChange((ev,s)=>{
+ if(s&&s.user){me=s.user;setTimeout(load,0)}else{me=null;authView()}
+});
+</script>
+</body>
+</html>
